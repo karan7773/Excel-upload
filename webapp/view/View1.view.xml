@@ -1,0 +1,48 @@
+<mvc:View controllerName="excelupload.controller.View1"
+    xmlns:mvc="sap.ui.core.mvc" displayBlock="true"
+    xmlns="sap.m"
+    xmlns:u="sap.ui.unified"
+    xmlns:core="sap.ui.core">
+    <Page id="page" title="{i18n>title}">
+        <content>
+            <u:FileUploader 
+                id="fileUploader"
+                name="myFileUpload"
+                uploadUrl="upload/"
+                tooltip="Upload your file"
+                uploadComplete="onUploadComplete"
+                change="onValueChange"
+                typeMissmatch="onTypeMissmatch"
+                style="Emphasized"
+                fileType="xlsx,xls,csv"
+                placeholder="Choose a file"/>
+            
+            <Button 
+                text="Post to OData" 
+                press="onPostToOData" 
+                type="Emphasized"
+                class="sapUiSmallMarginTop"
+                enabled="{= ${uploadData>/}.length > 0 }"/>
+            <Table items="{uploadData>/}">
+                <columns>
+                    <Column><Text text="ID"/></Column>
+                    <Column><Text text="Name"/></Column>
+                    <Column><Text text="Description"/></Column>
+                    <Column><Text text="Quantity"/></Column>
+                    <Column><Text text="City"/></Column>
+                </columns>
+                <items>
+                    <ColumnListItem>
+                        <cells>
+                            <Text text="{uploadData>Id}"/>
+                            <Text text="{uploadData>Material_Name}"/>
+                            <Text text="{uploadData>Material_Des}"/>
+                            <Text text="{uploadData>Quantity}"/>
+                            <Text text="{uploadData>City}"/>
+                        </cells>
+                    </ColumnListItem>
+                </items>
+            </Table>
+        </content>
+    </Page>
+</mvc:View>
