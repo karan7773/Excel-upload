@@ -62,6 +62,7 @@ sap.ui.define([
                 this.getView().getModel("uploadData").setData(jsonData);
                 console.log(this.getView().getModel("uploadData"));
                 
+                this._buildTable(jsonData);
                 
                 sap.m.MessageToast.show("Excel processed successfully: " + jsonData.length + " records");
                 console.log(jsonData);
@@ -72,6 +73,40 @@ sap.ui.define([
                 sap.m.MessageToast.show("Error processing Excel: " + error.message);
             }
         },
+
+        _buildTable: function(aData) {
+            var oView = this.getView();
+            var oVBox = oView.byId("tableContainer");
+            oVBox.removeAllItems();
+        
+            if (!aData || aData.length === 0) return;
+        
+            // Create Table
+            var oTable = new sap.m.Table({
+                inset: false,
+                growing: true,
+                growingThreshold: 10
+            });
+        
+            // Create columns based on keys of first row
+            var aKeys = Object.keys(aData[0]);
+            aKeys.forEach(function(key) {
+                oTable.addColumn(new sap.m.Column({
+                    header: new sap.m.Label({ text: key })
+                }));
+            });
+        
+            // Bind items
+            var oTemplate = new sap.m.ColumnListItem({
+                cells: aKeys.map(function(key) {
+                    return new sap.m.Text({ text: "{uploadData>" + key + "}" });
+                })
+            });
+        
+            oTable.bindItems("uploadData>/", oTemplate);
+        
+            oVBox.addItem(oTable);
+        },        
         
         onUploadComplete: function(oEvent) {
             var response = oEvent.getParameter("response");
@@ -80,7 +115,7 @@ sap.ui.define([
             }
         },
         
-        onPostToOData: function() {
+        _postDataToOData: function() {
             var oUploadModel = this.getView().getModel("uploadData");
             var aData = oUploadModel.getData();
             
@@ -142,6 +177,69 @@ sap.ui.define([
                 }
             });
 
-        }
+        },
+
+        onPostToOData: function() {
+            var oUploadModel = this.getView().getModel("uploadData");
+            var aData = oUploadModel.getData();
+            
+            if (!aData || aData.length === 0) {
+                MessageBox.error("No data to upload");
+                return;
+            }
+            
+            // First validate the data
+            this.validateDataBeforePost(aData)
+                .then(function(validationResult) {
+                    if (validationResult.hasDuplicates) {
+                        MessageBox.warning(
+                            `Found ${validationResult.duplicateIds.length} duplicate IDs that already exist in the system. ` +
+                            `Duplicate IDs: ${validationResult.duplicateIds.join(", ")}. ` +
+                            "Please correct the data before uploading."
+                        );
+                    } else {
+                        // Proceed with actual posting if validation passes
+                        this._postDataToOData(aData);
+                    }
+                }.bind(this))
+                .catch(function(error) {
+                    console.error("Validation error:", error);
+                    MessageBox.error("Error during validation: " + error.message);
+                });
+        },
+        validateDataBeforePost: function(aData) {
+            return new Promise(function(resolve, reject) {
+                BusyIndicator.show();
+                
+                // Extract all IDs from our upload data
+                var uploadIds = aData.map(function(item) { return item.Id; });
+                
+                // Read existing IDs from OData service
+                oModelData.read("/laptopsSet", {
+                    urlParameters: {
+                        "$select": "Id",
+                        "$filter": "Id eq " + uploadIds.join(" or Id eq ")
+                    },
+                    success: function(oData) {
+                        BusyIndicator.hide();
+                        
+                        var existingIds = oData.results.map(function(item) { return item.Id; });
+                        var duplicateIds = uploadIds.filter(function(id) { 
+                            return existingIds.includes(id); 
+                        });
+                        
+                        resolve({
+                            isValid: duplicateIds.length === 0,
+                            hasDuplicates: duplicateIds.length > 0,
+                            duplicateIds: duplicateIds
+                        });
+                    },
+                    error: function(oError) {
+                        BusyIndicator.hide();
+                        reject(new Error("Failed to validate data against OData service"));
+                    }
+                });
+            });
+        },
     });
 });

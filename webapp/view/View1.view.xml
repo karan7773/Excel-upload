@@ -23,26 +23,7 @@
                 type="Emphasized"
                 class="sapUiSmallMarginTop"
                 enabled="{= ${uploadData>/}.length > 0 }"/>
-            <Table items="{uploadData>/}">
-                <columns>
-                    <Column><Text text="ID"/></Column>
-                    <Column><Text text="Name"/></Column>
-                    <Column><Text text="Description"/></Column>
-                    <Column><Text text="Quantity"/></Column>
-                    <Column><Text text="City"/></Column>
-                </columns>
-                <items>
-                    <ColumnListItem>
-                        <cells>
-                            <Text text="{uploadData>Id}"/>
-                            <Text text="{uploadData>Material_Name}"/>
-                            <Text text="{uploadData>Material_Des}"/>
-                            <Text text="{uploadData>Quantity}"/>
-                            <Text text="{uploadData>City}"/>
-                        </cells>
-                    </ColumnListItem>
-                </items>
-            </Table>
+            <VBox id="tableContainer" class="sapUiSmallMarginTop"/>
         </content>
     </Page>
 </mvc:View>
