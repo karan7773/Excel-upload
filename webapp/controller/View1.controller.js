@@ -54,24 +54,76 @@ sap.ui.define([
                 }
                 
                 var workbook = XLSX.read(excelData, {type: 'binary'});
-                var firstSheetName = workbook.SheetNames[0];
-                var firstSheet = workbook.Sheets[firstSheetName];
-                var jsonData = XLSX.utils.sheet_to_json(firstSheet, {defval: ""});
+                var sheetNo;
+                if (workbook.SheetNames.length >= 1) {
+                    // console.log(workbook.SheetNames.length);
                 
-                // Bind to model
-                this.getView().getModel("uploadData").setData(jsonData);
-                console.log(this.getView().getModel("uploadData"));
+                    this.onOpenDialog().then(function (sheetNo) {
+                        if (sheetNo < 0 || sheetNo >= workbook.SheetNames.length) {
+                            sap.m.MessageToast.show("Invalid sheet number.");
+                            return;
+                        }
                 
-                this._buildTable(jsonData);
+                        var sheetName = workbook.SheetNames[sheetNo];
+                        var sheet = workbook.Sheets[sheetName];
+                        var jsonData = XLSX.utils.sheet_to_json(sheet, { defval: "" });
                 
-                sap.m.MessageToast.show("Excel processed successfully: " + jsonData.length + " records");
-                console.log(jsonData);
+                        // Bind to model
+                        this.getView().getModel("uploadData").setData(jsonData);
+                        // console.log(this.getView().getModel("uploadData"));
                 
+                        this._buildTable(jsonData);
+                
+                        sap.m.MessageToast.show("Excel processed successfully: " + jsonData.length + " records");
+                        // console.log(jsonData);
+                    }.bind(this)).catch(function (error) {
+                        console.log("Dialog cancelled or failed:", error);
+                    });
+                }
                 
             } catch (error) {
                 console.error("Excel processing error:", error);
                 sap.m.MessageToast.show("Error processing Excel: " + error.message);
             }
+        },
+
+        onOpenDialog: function () {
+            return new Promise((resolve, reject) => {
+                if (!this._oDialog) {
+                    this._oDialog = new sap.m.Dialog({
+                        title: "Enter Sheet Number",
+                        content: [
+                            new sap.m.Label({ text: "Sheet Index (0-based)", labelFor: "sheetInput" }),
+                            new sap.m.Input("sheetInput", {
+                                type: "Number",
+                                placeholder: "e.g., 0"
+                            })
+                        ],
+                        beginButton: new sap.m.Button({
+                            text: "OK",
+                            press: function () {
+                                const inputVal = sap.ui.getCore().byId("sheetInput").getValue();
+                                const sheetIndex = parseInt(inputVal);
+                                this._oDialog.close();
+                                resolve(sheetIndex); // Send value back to caller
+                            }.bind(this)
+                        }),
+                        endButton: new sap.m.Button({
+                            text: "Cancel",
+                            press: function () {
+                                this._oDialog.close();
+                                reject("Dialog cancelled");
+                            }.bind(this)
+                        }),
+                        afterClose: function () {
+                            this._oDialog.destroy();
+                            this._oDialog = null;
+                        }.bind(this)
+                    });
+                }
+        
+                this._oDialog.open();
+            });
         },
 
         _buildTable: function(aData) {
@@ -141,7 +193,7 @@ sap.ui.define([
                     var value = oRow[key];
                     oPayload[key] = value
                 });
-                console.log("Adding entry to batch with converted types:", oPayload);
+                // console.log("Adding entry to batch with converted types:", oPayload);
                 
                 var path = "/laptopsSet";
                 // oModelData.create(path, oPayload, {
@@ -156,7 +208,7 @@ sap.ui.define([
                     groupId: sBatchGroupId,
                     properties: oPayload,
                     success: function(data) {
-                        console.log("Successfully created:", data);
+                        // console.log("Successfully created:", data);
                     },
                     error: function(error) {
                         console.error("Error creating entry:", error);
@@ -165,10 +217,12 @@ sap.ui.define([
                 });
             });
             // Submit changes
-            oModelData.submitChanges(sBatchGroupId, {
+            oModelData.submitChanges({
+                groupId: sBatchGroupId,
                 success: function(oData, response) {
+                    // console.log("Submit success", oData);
                     BusyIndicator.hide();
-                    MessageBox.success(`Successfully uploaded ${aData.length} records`);
+                    MessageBox.success(`Successfully uploaded records`);
                 },
                 error: function(oError) {
                     BusyIndicator.hide();
@@ -207,6 +261,7 @@ sap.ui.define([
                     MessageBox.error("Error during validation: " + error.message);
                 });
         },
+
         validateDataBeforePost: function(aData) {
             return new Promise(function(resolve, reject) {
                 BusyIndicator.show();
@@ -240,6 +295,6 @@ sap.ui.define([
                     }
                 });
             });
-        },
+        }
     });
 });
