@@ -7,7 +7,7 @@ sap.ui.define([
 ], function(Controller, JSONModel, ODataModel, MessageBox, BusyIndicator) {
     "use strict";
 
-    var ServiceUrl = "/sap/opu/odata/sap/Z_BAT6_LAP_SRV";
+    var ServiceUrl = "/sap/opu/odata/sap/Z_BAT6_KS_LAPTOP_SRV";
     var oModelData = new ODataModel(ServiceUrl, {
         useBatch: true
     });
@@ -15,6 +15,7 @@ sap.ui.define([
     return Controller.extend("excelupload.controller.View1", {
         onInit: function() {
             this.getView().setModel(new JSONModel(), "uploadData");
+            this.getView().setModel(new JSONModel(), "ModelData");
             this.getView().setModel(oModelData);
         },
 
@@ -124,42 +125,48 @@ sap.ui.define([
         
                 this._oDialog.open();
             });
-        },
-
+        },      
+        
         _buildTable: function(aData) {
             var oView = this.getView();
             var oVBox = oView.byId("tableContainer");
+            var oOldTable = oView.byId("myTableId");
+            if (oOldTable) {
+                oOldTable.destroy();
+                oOldTable = null;
+            }
+            
             oVBox.removeAllItems();
-        
+            
             if (!aData || aData.length === 0) return;
-        
-            // Create Table
+            
             var oTable = new sap.m.Table({
+                id: oView.createId("myTableId"), 
                 inset: false,
                 growing: true,
-                growingThreshold: 10
+                growingThreshold: 10,
+                mode: "MultiSelect"
             });
-        
-            // Create columns based on keys of first row
+            
             var aKeys = Object.keys(aData[0]);
             aKeys.forEach(function(key) {
                 oTable.addColumn(new sap.m.Column({
                     header: new sap.m.Label({ text: key })
                 }));
             });
-        
-            // Bind items
+            
             var oTemplate = new sap.m.ColumnListItem({
                 cells: aKeys.map(function(key) {
                     return new sap.m.Text({ text: "{uploadData>" + key + "}" });
                 })
             });
-        
+            
             oTable.bindItems("uploadData>/", oTemplate);
-        
             oVBox.addItem(oTable);
-        },        
-        
+            
+            this._oTable = oTable;
+        },
+
         onUploadComplete: function(oEvent) {
             var response = oEvent.getParameter("response");
             if (response) {
@@ -177,7 +184,7 @@ sap.ui.define([
             }
             var sBatchGroupId = "postBatchGroup";            
             // Enable batch mode
-            oModelData.setUseBatch(true);
+            oModelData.setUseBatch(false);
 
             aData.forEach(function(oRow) {
                 // Convert data types explicitly
@@ -294,6 +301,172 @@ sap.ui.define([
                         reject(new Error("Failed to validate data against OData service"));
                     }
                 });
+            });
+        },
+
+        onUpdateToOData:function(){
+            var oTable = this.getView().byId("myTableId")
+            console.log(oTable);
+            var aSelectedItems = oTable.getSelectedItems();
+            if (aSelectedItems.length === 0) {
+                MessageBox.warning("Please select at least one record to update");
+                return;
+            }
+            
+            var aSelectedData = aSelectedItems.map(function(oItem) {
+                var oContext = oItem.getBindingContext("uploadData");
+                return oContext.getObject();
+            });
+            
+            console.log("Selected data for update:", aSelectedData);
+            aSelectedData.forEach((oRow)=>{
+                var oPayload = {}
+                Object.keys(oRow).forEach(function(key) {
+                    var value = oRow[key];
+                    oPayload[key] = value
+                });
+                var sRecordId = parseInt(oPayload.Id, 10);
+                var path = "/laptopsSet(" + sRecordId + ")";
+                console.log(path);
+                
+                console.log(oPayload,sRecordId);
+                oModelData.update(path,oPayload, {
+                    success: function() {
+                        console.log("Successfully updated");
+                    },
+                    error: function(error) {
+                        console.error("Error creating entry:", error);
+                        MessageBox.error("Error during upload. Please try again later.");
+                    }
+                });  
+            });
+            oModelData.submitChanges({
+                groupId: "updateBatchGroup",
+                success: function(oData, response) {
+                    // console.log("Submit success", oData);
+                    BusyIndicator.hide();
+                    MessageBox.success(`Successfully uploaded records`);
+                },
+                error: function(oError) {
+                    BusyIndicator.hide();
+                    console.error("Batch POST failed", oError);
+                    MessageBox.error(sErrorMsg);
+                }
+            });
+        },
+
+        onDeleteToOData:function(){
+            var oTable = this.getView().byId("myTableId")
+            console.log(oTable);
+            var aSelectedItems = oTable.getSelectedItems();
+            if (aSelectedItems.length === 0) {
+                MessageBox.warning("Please select at least one record to update");
+                return;
+            }
+            
+            var aSelectedData = aSelectedItems.map(function(oItem) {
+                var oContext = oItem.getBindingContext("uploadData");
+                return oContext.getObject();
+            });
+            
+            console.log("Selected data for update:", aSelectedData);
+            aSelectedData.forEach((oRow)=>{
+                var oPayload = {}
+                Object.keys(oRow).forEach(function(key) {
+                    var value = oRow[key];
+                    oPayload[key] = value
+                });
+                var sRecordId = parseInt(oPayload.Id, 10);
+                var path = "/laptopsSet(" + sRecordId + ")";
+                console.log(path);
+                
+                console.log(oPayload,sRecordId);
+                oModelData.remove(path,oPayload, {
+                    success: function() {
+                        console.log("Successfully updated");
+                    },
+                    error: function(error) {
+                        console.error("Error creating entry:", error);
+                        MessageBox.error("Error during upload. Please try again later.");
+                    }
+                });  
+            });
+            oModelData.submitChanges({
+                groupId: "deleteBatchGroup",
+                success: function(oData, response) {
+                    // console.log("Submit success", oData);
+                    BusyIndicator.hide();
+                    MessageBox.success(`Successfully uploaded records`);
+                },
+                error: function(oError) {
+                    BusyIndicator.hide();
+                    console.error("Batch POST failed", oError);
+                    MessageBox.error(sErrorMsg);
+                }
+            });   
+        },
+        
+        onReadToOData: function() {
+            var oView = this.getView();
+            var oVBox = oView.byId("ModelContainer");
+            
+            // Clear previous content
+            oVBox.removeAllItems();
+            var oOldTable = oView.byId("myModelId");
+            if (oOldTable) oOldTable.destroy();
+            
+            // Create empty table immediately
+            var oTable = new sap.m.Table({
+                id: oView.createId("myModelId"),
+                inset: false,
+                growing: true,
+                growingThreshold: 10,
+                mode: "MultiSelect"
+            });
+            oVBox.addItem(oTable);
+            
+            BusyIndicator.show();
+            
+            oModelData.read("/laptopsSet", {
+                success: function(oData) {
+                    BusyIndicator.hide();
+                    
+                    var oModel = oView.getModel("ModelData");
+                    if (!oModel) {
+                        oModel = new JSONModel();
+                        oView.setModel(oModel, "ModelData");
+                    }
+                    
+                    oModel.setData(oData.results);
+                    
+                    var aKeys = Object.keys(oData.results[0] || {}).filter(function(key) {
+                        return !key.startsWith('__'); // Exclude __metadata, __deferred, etc.
+                    });
+                    
+                    // Create columns only for non-metadata fields
+                    aKeys.forEach(function(key) {
+                        oTable.addColumn(new sap.m.Column({
+                            header: new sap.m.Label({ text: key })
+                        }));
+                    });
+                    
+                    oTable.bindItems({
+                        path: "ModelData>/",
+                        template: new sap.m.ColumnListItem({
+                            cells: aKeys.map(function(key) {
+                                return new sap.m.Text({
+                                    text: "{ModelData>" + key + "}"
+                                });
+                            })
+                        }),
+                        sorter: new sap.ui.model.Sorter("Id", false)
+                    });
+                }.bind(this),
+                error: function(oError) {
+                    BusyIndicator.hide();
+                    MessageBox.error("Failed to load data");
+                    console.error(oError);
+                }
             });
         }
     });

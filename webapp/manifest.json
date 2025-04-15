@@ -17,7 +17,7 @@
     },
     "dataSources": {
       "mainService": {
-        "uri": "/sap/opu/odata/sap/Z_BAT6_LAP_SRV/",
+        "uri": "/sap/opu/odata/sap/Z_BAT6_KS_LAPTOP_SRV/",
         "type": "OData",
         "settings": {
           "annotations": [],

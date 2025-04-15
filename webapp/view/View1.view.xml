@@ -21,9 +21,31 @@
                 text="Post to OData" 
                 press="onPostToOData" 
                 type="Emphasized"
-                class="sapUiSmallMarginTop"
+                class="sapUiSmallMarginTop sapUiTinyMarginEnd"
                 enabled="{= ${uploadData>/}.length > 0 }"/>
+
+            <Button 
+                text="Update to OData" 
+                press="onUpdateToOData" 
+                type="Emphasized"
+                class="sapUiSmallMarginTop sapUiTinyMarginEnd"
+                enabled="{= ${uploadData>/}.length > 0 }"/>
+            
+            <Button 
+                text="Delete in OData" 
+                press="onDeleteToOData" 
+                type="Emphasized"
+                class="sapUiSmallMarginTop sapUiTinyMarginEnd"
+                enabled="{= ${uploadData>/}.length > 0 }"/>
+
+            <Button 
+                text="Read OData" 
+                press="onReadToOData" 
+                type="Emphasized"
+                class="sapUiSmallMarginTop sapUiTinyMarginEnd"/>
+
             <VBox id="tableContainer" class="sapUiSmallMarginTop"/>
+            <VBox id="ModelContainer" class="sapUiSmallMarginTop"/>
         </content>
     </Page>
 </mvc:View>
