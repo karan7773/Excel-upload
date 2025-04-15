@@ -7,7 +7,6 @@
 |**Generation Platform**<br>SAP Business Application Studio|
 |**Template Used**<br>simple|
 |**Service Type**<br>SAP System (ABAP On Premise)|
-|**Service URL**<br>http://192.168.1.25:8011/sap/opu/odata/sap/Z_BAT6_LAP_SRV|
 |**Module Name**<br>excelupload|
 |**Application Title**<br>App Title|
 |**Namespace**<br>|
