@@ -1,4 +1,4 @@
-sap.ui.define([
+    sap.ui.define([
     "sap/ui/core/mvc/Controller",
     "sap/ui/model/json/JSONModel",
     "sap/ui/model/odata/v2/ODataModel",
@@ -356,7 +356,14 @@ sap.ui.define([
         },
 
         onDeleteToOData:function(){
-            var oTable = this.getView().byId("myTableId")
+            if(this.getView().byId("myTableId").getSelectedItems().length> 0){
+                var oTable = this.getView().byId("myTableId");
+                var path= "uploadData";
+            }else{
+                var oTable = this.getView().byId("myModelId");
+                var path = "ModelData";
+            }
+            // var oTable = this.getView().byId("myTableId")
             console.log(oTable);
             var aSelectedItems = oTable.getSelectedItems();
             if (aSelectedItems.length === 0) {
@@ -365,7 +372,7 @@ sap.ui.define([
             }
             
             var aSelectedData = aSelectedItems.map(function(oItem) {
-                var oContext = oItem.getBindingContext("uploadData");
+                var oContext = oItem.getBindingContext(path);
                 return oContext.getObject();
             });
             
